@@ -200,11 +200,15 @@ struct ContentView: View {
     @State var push : Bool = false
     
     @State var hapticsEnabled : Bool = true
+    @State var reducedMotionMode : Bool = true
+    
     
     
     
     
     @State private var isGameInitialized = false
+    @State private var shouldShowGameOutcome = false
+
     
     
     
@@ -216,7 +220,7 @@ struct ContentView: View {
             ZStack {
                 
                 
-                NavigationLink(destination: SettingsView(playerWins: $playerWins, dealerWins: $dealerWins, hapticsEnabled: $hapticsEnabled)) {
+                NavigationLink(destination: SettingsView(playerWins: $playerWins, dealerWins: $dealerWins, hapticsEnabled: $hapticsEnabled, reducedMotioNMode: $reducedMotionMode)) {
                     Image(systemName: "gearshape")
                         .font(.title)
                         .foregroundColor(.black)
@@ -306,11 +310,15 @@ struct ContentView: View {
                     Spacer()
                     
                     //hit and stand buttons
-                    if !dealerReveal && !playerBust {
+                    if !dealerReveal && !playerBust{
                         HStack(spacing: 30) {
                             Button(action: {
                                 dealToPlayer() // HIT
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                
+                                if (!hapticsEnabled) {
+                                    
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                }
                                 
                                 print("hit")
                             }) {
@@ -327,7 +335,10 @@ struct ContentView: View {
                                 dealerReveal = true;
                                 dealersTurn();
                                 
-                                print("Stand")
+                                
+                                shouldShowGameOutcome = true
+                                
+                                
                             }) {
                                 Text("Stand")
                                     .font(.headline)
@@ -339,6 +350,26 @@ struct ContentView: View {
                             }
                         }
                         .padding(.bottom, 20)
+                    }
+                    else if (shouldShowGameOutcome && gameLabelText() != "") {
+                        Button(action: {
+                            resetGameState()
+                        }) {
+                            Text(gameLabelText())
+                                .font(.headline)
+                                .frame(width: 150, height: 40)
+                                .background(getIfPlayerWon() ? Color.green : Color.red)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .shadow(radius: 5)
+                        }
+                        .opacity(shouldShowGameOutcome ? 1 : 0)
+                        .animation(.easeIn(duration: 0.5), value: shouldShowGameOutcome)
+                        .padding(.bottom, 20)
+
+
+                        
+                        
                     }
                     
                     
@@ -389,241 +420,250 @@ struct ContentView: View {
                             Text(String(playerScore))
                                 .font(.system(size: 75, weight: .bold, design: .monospaced))
                                 .foregroundColor(.black)
+                                .frame(width: 100)
+                                .animation(.easeInOut(duration: 0.01), value: playerScore) // Optional
                         )
-                        .position(x: 200, y: 350)
+
                 }
                 .zIndex(-9) // This ensures it is behind everything
+                .frame(width: 150, height: 150) // ensures consistent layout container
+                .position(x: 200, y: 350)
                 
                 
                 
-                // Player Bust
-                if playerBust {
-                    ZStack {
-                        Color.red
-                            .edgesIgnoringSafeArea(.all)
-                            .opacity(0.95)
-                        
-                        VStack {
-                            Text("You Bust... 😵‍💫")
-                                .font(.system(size: 75, weight: .bold, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding(.top, 100)
+                if !reducedMotionMode {
+                    
+                    
+                    // Player Bust
+                    if playerBust {
+                        ZStack {
+                            Color.red
+                                .edgesIgnoringSafeArea(.all)
+                                .opacity(0.95)
                             
-                            Spacer()
-                            
-                            Button(action: {
-                                
-                                withAnimation {
-                                    playerBust = false
-                                }
-                                resetGameState()
-                            }) {
-                                Text("Next Game")
-                                    .font(.headline)
-                                    .frame(width: 150, height: 40)
-                                    .background(Color.black)
+                            VStack {
+                                Text("You Bust... 😵‍💫")
+                                    .font(.system(size: 75, weight: .bold, design: .monospaced))
                                     .foregroundColor(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .shadow(radius: 5)
-                            }
-                            .padding(.bottom, 100)
-                        }
-                    }
-                    .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
-                    .onTapGesture {
-                        
-                        withAnimation {
-                            playerBust = false
-                        }
-                        resetGameState()
-                    }
-                    .transition(.move(edge: .top))
-                    .zIndex(1)
-                }
-                
-                
-                //dealer bussts
-                if dealerBust {
-                    ZStack {
-                        Color.green
-                            .edgesIgnoringSafeArea(.all)
-                            .opacity(0.95)
-                        
-                        VStack {
-                            Text("Dealer Busts!! 😈")
-                                .font(.system(size: 75, weight: .bold, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding(.top, 100)
-                            
-                            Spacer()
-                            
-                            Button(action: {
+                                    .padding(.top, 100)
                                 
-                                withAnimation {
-                                    dealerBust = false
-                                }
-                                resetGameState()
-                            }) {
-                                Text("Next Game")
-                                    .font(.headline)
-                                    .frame(width: 150, height: 40)
-                                    .background(Color.black)
-                                    .foregroundColor(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .shadow(radius: 5)
-                            }
-                            .padding(.bottom, 100)
-                        }
-                    }
-                    .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
-                    .onTapGesture {
-                        
-                        withAnimation {
-                            dealerBust = false
-                        }
-                        resetGameState()
-                    }
-                    .transition(.move(edge: .bottom))
-                    .zIndex(1)
-                }
-                
-                
-                //dealer wins
-                if dealerWin {
-                    ZStack {
-                        Color.red
-                            .edgesIgnoringSafeArea(.all)
-                            .opacity(0.95)
-                        
-                        VStack {
-                            Text("Dealer Wins 👹")
-                                .font(.system(size: 75, weight: .bold, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding(.top, 100)
-                            
-                            Spacer()
-                            
-                            Button(action: {
+                                Spacer()
                                 
-                                withAnimation {
-                                    dealerWin = false
+                                Button(action: {
+                                    
+                                    withAnimation {
+                                        playerBust = false
+                                    }
+                                    resetGameState()
+                                }) {
+                                    Text("Next Game")
+                                        .font(.headline)
+                                        .frame(width: 150, height: 40)
+                                        .background(Color.black)
+                                        .foregroundColor(.white)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .shadow(radius: 5)
                                 }
-                                resetGameState()
-                            }) {
-                                Text("Next Game")
-                                    .font(.headline)
-                                    .frame(width: 150, height: 40)
-                                    .background(Color.black)
-                                    .foregroundColor(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .shadow(radius: 5)
+                                .padding(.bottom, 100)
                             }
-                            .padding(.bottom, 100)
                         }
-                    }
-                    .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
-                    .onTapGesture {
-                        
-                        withAnimation {
-                            dealerWin = false
+                        .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
+                        .onTapGesture {
+                            
+                            withAnimation {
+                                playerBust = false
+                            }
+                            resetGameState()
                         }
-                        resetGameState()
+                        .transition(.move(edge: .top))
+                        .zIndex(1)
                     }
-                    .transition(.move(edge: .top))
-                    .zIndex(1)
-                }
-                
-                
-                //player win
-                if playerWin {
-                    ZStack {
-                        Color.green
-                            .edgesIgnoringSafeArea(.all)
-                            .opacity(0.95)
-                        
-                        VStack {
-                            Text("You Win!! 🏆")
-                                .font(.system(size: 75, weight: .bold, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding(.top, 100)
+                    
+                    
+                    //dealer bussts
+                    if dealerBust {
+                        ZStack {
+                            Color.green
+                                .edgesIgnoringSafeArea(.all)
+                                .opacity(0.95)
                             
-                            Spacer()
-                            
-                            Button(action: {
+                            VStack {
+                                Text("Dealer Busts!! 😈")
+                                    .font(.system(size: 75, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .padding(.top, 100)
                                 
-                                withAnimation {
-                                    playerWin = false
-                                }
-                                resetGameState()
-                            }) {
-                                Text("Next Game")
-                                    .font(.headline)
-                                    .frame(width: 150, height: 40)
-                                    .background(Color.black)
-                                    .foregroundColor(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .shadow(radius: 5)
-                            }
-                            .padding(.bottom, 100)
-                        }
-                    }
-                    .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
-                    .onTapGesture {
-                        
-                        withAnimation {
-                            playerWin = false
-                        }
-                        resetGameState()
-                    }
-                    .transition(.move(edge: .bottom))
-                    .zIndex(1)
-                }
-                
-                
-                
-                //push view
-                if push {
-                    ZStack {
-                        Color.black
-                            .edgesIgnoringSafeArea(.all)
-                            .opacity(0.5)
-                        
-                        VStack {
-                            Text("Push 😮‍💨")
-                                .font(.system(size: 75, weight: .bold, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding(.top, 100)
-                            
-                            Spacer()
-                            
-                            Button(action: {
+                                Spacer()
                                 
-                                withAnimation {
-                                    push = false
+                                Button(action: {
+                                    
+                                    withAnimation {
+                                        dealerBust = false
+                                    }
+                                    resetGameState()
+                                }) {
+                                    Text("Next Game")
+                                        .font(.headline)
+                                        .frame(width: 150, height: 40)
+                                        .background(Color.black)
+                                        .foregroundColor(.white)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .shadow(radius: 5)
                                 }
-                                resetGameState()
-                            }) {
-                                Text("Next Game")
-                                    .font(.headline)
-                                    .frame(width: 150, height: 40)
-                                    .background(Color.black)
-                                    .foregroundColor(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .shadow(radius: 5)
+                                .padding(.bottom, 100)
                             }
-                            .padding(.bottom, 100)
                         }
-                    }
-                    .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
-                    .onTapGesture {
-                        
-                        withAnimation {
-                            push = false
+                        .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
+                        .onTapGesture {
+                            
+                            withAnimation {
+                                dealerBust = false
+                            }
+                            resetGameState()
                         }
-                        resetGameState()
+                        .transition(.move(edge: .bottom))
+                        .zIndex(1)
                     }
-                    .transition(.move(edge: .leading))
-                    .zIndex(1)
+                    
+                    
+                    //dealer wins
+                    if dealerWin {
+                        ZStack {
+                            Color.red
+                                .edgesIgnoringSafeArea(.all)
+                                .opacity(0.95)
+                            
+                            VStack {
+                                Text("Dealer Wins 👹")
+                                    .font(.system(size: 75, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .padding(.top, 100)
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    
+                                    withAnimation {
+                                        dealerWin = false
+                                    }
+                                    resetGameState()
+                                }) {
+                                    Text("Next Game")
+                                        .font(.headline)
+                                        .frame(width: 150, height: 40)
+                                        .background(Color.black)
+                                        .foregroundColor(.white)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .shadow(radius: 5)
+                                }
+                                .padding(.bottom, 100)
+                            }
+                        }
+                        .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
+                        .onTapGesture {
+                            
+                            withAnimation {
+                                dealerWin = false
+                            }
+                            resetGameState()
+                        }
+                        .transition(.move(edge: .top))
+                        .zIndex(1)
+                    }
+                    
+                    
+                    //player win
+                    if playerWin {
+                        ZStack {
+                            Color.green
+                                .edgesIgnoringSafeArea(.all)
+                                .opacity(0.95)
+                            
+                            VStack {
+                                Text("You Win!! 🏆")
+                                    .font(.system(size: 75, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .padding(.top, 100)
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    
+                                    withAnimation {
+                                        playerWin = false
+                                    }
+                                    resetGameState()
+                                }) {
+                                    Text("Next Game")
+                                        .font(.headline)
+                                        .frame(width: 150, height: 40)
+                                        .background(Color.black)
+                                        .foregroundColor(.white)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .shadow(radius: 5)
+                                }
+                                .padding(.bottom, 100)
+                            }
+                        }
+                        .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
+                        .onTapGesture {
+                            
+                            withAnimation {
+                                playerWin = false
+                            }
+                            resetGameState()
+                        }
+                        .transition(.move(edge: .bottom))
+                        .zIndex(1)
+                    }
+                    
+                    
+                    
+                    //push view
+                    if push {
+                        ZStack {
+                            Color.black
+                                .edgesIgnoringSafeArea(.all)
+                                .opacity(0.5)
+                            
+                            VStack {
+                                Text("Push 😮‍💨")
+                                    .font(.system(size: 75, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .padding(.top, 100)
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    
+                                    withAnimation {
+                                        push = false
+                                    }
+                                    resetGameState()
+                                }) {
+                                    Text("Next Game")
+                                        .font(.headline)
+                                        .frame(width: 150, height: 40)
+                                        .background(Color.black)
+                                        .foregroundColor(.white)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .shadow(radius: 5)
+                                }
+                                .padding(.bottom, 100)
+                            }
+                        }
+                        .contentShape(Rectangle()) // Ensures entire ZStack area is tappable
+                        .onTapGesture {
+                            
+                            withAnimation {
+                                push = false
+                            }
+                            resetGameState()
+                        }
+                        .transition(.move(edge: .leading))
+                        .zIndex(1)
+                    }
+                    
                 }
                 
                 
@@ -683,7 +723,10 @@ struct ContentView: View {
     func resetGameState() {
         print("attempt to reset")
         
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if (!hapticsEnabled) {
+            
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
         
         
         playerScore = 0
@@ -777,7 +820,11 @@ struct ContentView: View {
                 else {
                     dealerBust = true;
                     playerWins += 1
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    
+                    if (!hapticsEnabled) {
+                        
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    }
                     
                     return;
                 }
@@ -788,22 +835,72 @@ struct ContentView: View {
         if (dealerScore > playerScore) {
             dealerWin = true;
             dealerWins += 1
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            
+            if (!hapticsEnabled) {
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            }
             
         }
         else if (dealerScore < playerScore){
             playerWin = true
             playerWins += 1
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            
+            if (!hapticsEnabled) {
+                
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
             
         }
         else {
             push = true
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            
+            if (!hapticsEnabled) {
+                
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            }
             
         }
         
     }
+    
+    
+    func gameLabel() -> String {
+        if dealerBust {
+            return "DB"
+        } else if playerBust {
+            return "PB"
+        } else if dealerWin {
+            return "DW"
+        } else if playerWin {
+            return "PW"
+        } else if push {
+            return "PP"
+        } else {
+            return "ER"
+        }
+    }
+    
+    
+    func gameLabelText() -> String {
+        if dealerBust {
+            return "Dealer Bust!"
+        } else if playerBust {
+            return "You Busted"
+        } else if dealerWin {
+            return "Dealer Wins"
+        } else if playerWin {
+            return "You Win!"
+        } else if push {
+            return "Push Game"
+        } else {
+            return ""
+        }
+    }
+    
+    func getIfPlayerWon() -> Bool {
+        return playerWin || dealerBust || push
+    }
+
     
 }
 
