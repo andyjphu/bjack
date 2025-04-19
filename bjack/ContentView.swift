@@ -199,6 +199,8 @@ struct ContentView: View {
     @State var dealerWin : Bool = false
     @State var push : Bool = false
     
+    @State var hapticsEnabled : Bool = true
+    
     
     
     
@@ -214,11 +216,12 @@ struct ContentView: View {
             ZStack {
                 
                 
-                NavigationLink(destination: SettingsView()) {
+                NavigationLink(destination: SettingsView(playerWins: $playerWins, dealerWins: $dealerWins, hapticsEnabled: $hapticsEnabled)) {
                     Image(systemName: "gearshape")
                         .font(.title)
                         .foregroundColor(.black)
-                }.position(x:25, y:25) //25 385
+                }
+                .position(x:25, y:25) //25 385
                 
                 
                 
