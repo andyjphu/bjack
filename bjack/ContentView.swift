@@ -220,7 +220,7 @@ struct ContentView: View {
                         .foregroundColor(.black)
                 }.position(x:25, y:25) //25 385
                 
-   
+                
                 
                 
                 // Dealer hand
@@ -662,26 +662,26 @@ struct ContentView: View {
         dealToPlayer()
         dealToDealer()
         /*
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            dealToPlayer()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            dealToDealer()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
-            dealToPlayer()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            dealToDealer()
-        }*/
-
+         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+         dealToPlayer()
+         }
+         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+         dealToDealer()
+         }
+         DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+         dealToPlayer()
+         }
+         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+         dealToDealer()
+         }*/
+        
     }
     
     func resetGameState() {
         print("attempt to reset")
         
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-
+        
         
         playerScore = 0
         dealerScore = 0
@@ -775,29 +775,29 @@ struct ContentView: View {
                     dealerBust = true;
                     playerWins += 1
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-
+                    
                     return;
                 }
             }
             
         }
-    
+        
         if (dealerScore > playerScore) {
             dealerWin = true;
             dealerWins += 1
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-
+            
         }
         else if (dealerScore < playerScore){
             playerWin = true
             playerWins += 1
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-
+            
         }
         else {
             push = true
             UINotificationFeedbackGenerator().notificationOccurred(.error)
-
+            
         }
         
     }
